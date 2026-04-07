@@ -1,5 +1,6 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
 
 TOKEN = "8623940567:AAHCouEQsVVFyV-ZnOqfK1SayFZblFH-_mQ"
 
@@ -7,17 +8,16 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 
-@dp.message(commands=["start"])
+@dp.message(Command("start"))
 async def start(message: types.Message):
     await message.answer(
         "🤖 Бот запущен!\n\n"
-        "Доступные команды:\n"
         "/start\n"
         "/ping"
     )
 
 
-@dp.message(commands=["ping"])
+@dp.message(Command("ping"))
 async def ping(message: types.Message):
     await message.answer("🏓 Pong!")
 
