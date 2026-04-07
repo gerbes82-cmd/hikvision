@@ -21,43 +21,79 @@ async def start(message: types.Message):
 
 
 # ================= КНОПКИ =================
+from keyboards import main_menu, staff_menu, users_kb
+from database import add_user, get_users, delete_user
+
+user_state = {}
+
+
+@dp.message(Command("start"))
+async def start(message: types.Message):
+    await message.answer("Главное меню:", reply_markup=main_menu())
+
+
 @dp.callback_query()
 async def callbacks(call: types.CallbackQuery):
     data = call.data
 
-    # открыть меню сотрудников
-    if data == "staff":
-        await call.message.answer("Управление:", reply_markup=staff_menu())
+    # 🔹 назад в главное меню
+    if data == "back":
+        await call.message.answer("Главное меню:", reply_markup=main_menu())
 
-    # добавить
+    # 🔹 открыть сотрудников
+    elif data == "staff":
+        await call.message.answer("👥 Управление:", reply_markup=staff_menu())
+
+    # 🔹 добавить
     elif data == "add":
         user_state[call.from_user.id] = "add"
         await call.message.answer("Введите: ID Имя\nпример: 101 Ali")
 
-    # удалить
-    elif data == "delete":
-        users = get_users()
-        if not users:
-            await call.message.answer("Нет сотрудников")
-            return
-
-        await call.message.answer("Выберите кого удалить:", reply_markup=users_kb(users))
-
-    # список
+    # 🔹 список
     elif data == "list":
         users = get_users()
         if not users:
             await call.message.answer("Нет сотрудников")
             return
 
-        text = "\n".join([f"{e} - {n}" for e, n in users])
-        await call.message.answer(text)
+        await call.message.answer(
+            "Список сотрудников:",
+            reply_markup=users_kb(users)
+        )
 
-    # удаление конкретного
+    # 🔹 удалить (через выбор)
+    elif data == "delete":
+        users = get_users()
+        if not users:
+            await call.message.answer("Нет сотрудников")
+            return
+
+        await call.message.answer(
+            "Выберите кого удалить:",
+            reply_markup=users_kb(users)
+        )
+
+    # 🔹 удаление конкретного
     elif data.startswith("user_"):
         emp = data.split("_")[1]
         delete_user(emp)
         await call.message.answer(f"❌ Удалён {emp}")
+
+
+@dp.message()
+async def handle_text(message: types.Message):
+    uid = message.from_user.id
+
+    if user_state.get(uid) == "add":
+        try:
+            emp, name = message.text.split(maxsplit=1)
+            add_user(emp, name)
+
+            await message.answer("✅ Сотрудник добавлен")
+            user_state.pop(uid)
+
+        except:
+            await message.answer("Ошибка. Формат: 101 Ali")
 
 
 # ================= ТЕКСТ =================
