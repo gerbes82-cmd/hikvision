@@ -2,81 +2,85 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 
-from database import add_user, get_users, bind_user, get_user_by_tg
+from database import add_user, get_users, delete_user
+from keyboards import main_menu, staff_menu, users_kb
 
-TOKEN = "8623940567:AAHCouEQsVVFyV-ZnOqfK1SayFZblFH-_mQ"
+TOKEN = "PASTE_YOUR_TOKEN"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+# временное хранилище состояния
+user_state = {}
 
 
 # ================= START =================
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    await message.answer(
-        "🤖 Бот учета\n\n"
-        "Команды:\n"
-        "/add 101 Ali\n"
-        "/list\n"
-        "/bind 101\n"
-        "/me"
-    )
+    await message.answer("Меню:", reply_markup=main_menu())
 
 
-# ================= ADD =================
-@dp.message(Command("add"))
-async def add_cmd(message: types.Message):
-    try:
-        _, emp, name = message.text.split(maxsplit=2)
+# ================= КНОПКИ =================
+@dp.callback_query()
+async def callbacks(call: types.CallbackQuery):
+    data = call.data
 
-        add_user(emp, name)
+    # открыть меню сотрудников
+    if data == "staff":
+        await call.message.answer("Управление:", reply_markup=staff_menu())
 
-        await message.answer(f"✅ Добавлен: {name}")
-    except:
-        await message.answer("Формат: /add 101 Ali")
+    # добавить
+    elif data == "add":
+        user_state[call.from_user.id] = "add"
+        await call.message.answer("Введите: ID Имя\nпример: 101 Ali")
+
+    # удалить
+    elif data == "delete":
+        users = get_users()
+        if not users:
+            await call.message.answer("Нет сотрудников")
+            return
+
+        await call.message.answer("Выберите кого удалить:", reply_markup=users_kb(users))
+
+    # список
+    elif data == "list":
+        users = get_users()
+        if not users:
+            await call.message.answer("Нет сотрудников")
+            return
+
+        text = "\n".join([f"{e} - {n}" for e, n in users])
+        await call.message.answer(text)
+
+    # удаление конкретного
+    elif data.startswith("user_"):
+        emp = data.split("_")[1]
+        delete_user(emp)
+        await call.message.answer(f"❌ Удалён {emp}")
 
 
-# ================= LIST =================
-@dp.message(Command("list"))
-async def list_cmd(message: types.Message):
-    users = get_users()
+# ================= ТЕКСТ =================
+@dp.message()
+async def handle_text(message: types.Message):
+    uid = message.from_user.id
 
-    if not users:
-        await message.answer("Сотрудников нет")
-        return
+    # режим добавления
+    if user_state.get(uid) == "add":
+        try:
+            emp, name = message.text.split(maxsplit=1)
+            add_user(emp, name)
 
-    text = "\n".join([f"{e} - {n}" for e, n in users])
-    await message.answer(text)
+            await message.answer(f"✅ Добавлен {name}")
+            user_state.pop(uid)
 
-
-# ================= BIND =================
-@dp.message(Command("bind"))
-async def bind_cmd(message: types.Message):
-    try:
-        emp = message.text.split()[1]
-
-        bind_user(emp, message.from_user.id)
-
-        await message.answer("✅ Привязан")
-    except:
-        await message.answer("Формат: /bind 101")
-
-
-# ================= ME =================
-@dp.message(Command("me"))
-async def me_cmd(message: types.Message):
-    user = get_user_by_tg(message.from_user.id)
-
-    if not user:
-        await message.answer("❌ Не привязан")
-        return
-
-    await message.answer(f"Вы: {user[1]} (ID {user[0]})")
+        except:
+            await message.answer("Ошибка. Формат: 101 Ali")
 
 
 # ================= RUN =================
 async def main():
-    print("Бот запущен...")
+    print("Бот с UI запущен")
     await dp.start_polling(bot)
 
 
