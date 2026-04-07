@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from database import add_user, get_users, delete_user
 from keyboards import main_menu, staff_menu, users_kb
 
-TOKEN = "PASTE_YOUR_TOKEN"
+TOKEN = "8623940567:AAHCouEQsVVFyV-ZnOqfK1SayFZblFH-_mQ"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
