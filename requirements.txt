@@ -1,4 +1,1 @@
 aiogram
-requests
-pandas
-openpyxl
