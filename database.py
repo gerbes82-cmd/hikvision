@@ -41,3 +41,7 @@ def get_user_by_tg(tg_id):
         (tg_id,)
     )
     return cursor.fetchone()
+
+def delete_user(emp):
+    cursor.execute("DELETE FROM users WHERE employee_no=?", (emp,))
+    conn.commit()
